@@ -15,22 +15,17 @@ namespace SuperSocket.ProtoBuf
     /// - 4 bytes for message size (big-endian)
     /// - 4 bytes for message type ID (big-endian)
     /// </remarks>
-    public class ProtobufPackageEncoder : IPackageEncoder<ProtobufPackageInfo>
+    public abstract class ProtobufPackageEncoder<TPackageInfo> : IPackageEncoder<TPackageInfo>
     {
-        private readonly Dictionary<Type, int> _typeToIdMapping = new Dictionary<Type, int>();
+        private readonly ProtobufTypeRegistry _typeRegistry;
 
         /// <summary>
-        /// Register a message type with its type identifier
+        /// Initializes a new instance of the <see cref="ProtobufPackageEncoder{TPackageInfo}"/> class.
         /// </summary>
-        /// <param name="messageType">The message type</param>
-        /// <param name="typeId">The message type identifier</param>
-        /// <exception cref="ArgumentNullException">Thrown when messageType is null</exception>
-        public void RegisterMessageType(Type messageType, int typeId)
+        /// <param name="typeRegistry">The protobuf type registry to use for encoding</param>
+        public ProtobufPackageEncoder(ProtobufTypeRegistry typeRegistry)
         {
-            if (messageType == null)
-                throw new ArgumentNullException(nameof(messageType));
-
-            _typeToIdMapping[messageType] = typeId;
+            _typeRegistry = typeRegistry ?? throw new ArgumentNullException(nameof(typeRegistry));
         }
 
         /// <summary>
@@ -42,25 +37,20 @@ namespace SuperSocket.ProtoBuf
         /// <exception cref="ArgumentNullException">Thrown when package is null</exception>
         /// <exception cref="ArgumentException">Thrown when package.Message is null</exception>
         /// <exception cref="InvalidOperationException">Thrown when the message type is not registered</exception>
-        public int Encode(IBufferWriter<byte> writer, ProtobufPackageInfo package)
+        public int Encode(IBufferWriter<byte> writer, TPackageInfo package)
         {
             if (package == null)
                 throw new ArgumentNullException(nameof(package));
 
-            if (package.Message == null)
-                throw new ArgumentException("Message cannot be null", nameof(package));
+            var message = GetProtoBufMessage(package);
 
-            var message = package.Message;
-            var messageType = message.GetType();
-
-            // Get the message type ID from the package directly or from the mapping
-            int typeId = package.TypeId;
+            // Get the message type ID from the package directly or from the registry
+            int typeId = GetProtoBufMessageTypeId(package);
             
-            // If type ID is not set, try to get it from the mapping
+            // If type ID is not set, try to get it from the registry
             if (typeId == 0)
             {
-                if (!_typeToIdMapping.TryGetValue(messageType, out typeId))
-                    throw new InvalidOperationException($"Message type {messageType.FullName} is not registered with a type ID");
+                typeId = GetMessageTypeId(message.GetType());
             }
 
             // Calculate the message size
@@ -85,6 +75,64 @@ namespace SuperSocket.ProtoBuf
 
             // Return the total bytes written
             return messageSize + 8;
+        }
+
+        /// <summary>
+        /// Tries to get the message type ID from the registry.
+        /// </summary>
+        /// <param name="messageType">The message type.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the message type is not registered</exception>
+        /// <returns>The type ID.</returns>
+        protected int GetMessageTypeId(Type messageType)
+        {
+            if (!_typeRegistry.TryGetTypeId(messageType, out var typeId))
+            {
+                throw new InvalidOperationException($"Message type {messageType.FullName} is not registered with a type ID");
+            }
+
+            return typeId;
+        }
+
+        /// <summary>
+        /// Converts a package info into a ProtoBuf message.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        protected abstract IMessage GetProtoBufMessage(TPackageInfo package);
+
+        /// <summary>
+        /// Gets the ProtoBuf message type ID from the package.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        protected virtual int GetProtoBufMessageTypeId(TPackageInfo package)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// A concrete implementation of ProtobufPackageEncoder for IMessage.
+    /// </summary>
+    public class ProtobufPackageEncoder : ProtobufPackageEncoder<IMessage>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProtobufPackageEncoder"/> class.
+        /// </summary>
+        /// <param name="typeRegistry">The protobuf type registry to use for encoding</param>
+        public ProtobufPackageEncoder(ProtobufTypeRegistry typeRegistry)
+            : base(typeRegistry)
+        {
+        }
+
+        /// <inheritdoc/>
+        protected override IMessage GetProtoBufMessage(IMessage package)
+        {
+            return package;
+        }
+
+        /// <inheritdoc/>
+        protected override int GetProtoBufMessageTypeId(IMessage package)
+        {
+            return GetMessageTypeId(package.GetType());
         }
     }
 }

@@ -8,9 +8,11 @@ SuperSocket.ProtoBuf is an extension library for [SuperSocket](https://github.co
 
 - Efficient binary serialization and deserialization using Google Protocol Buffers
 - Built-in message type identification and routing
-- Support for strongly-typed message handling
+- Support for strongly-typed message handling with generic APIs
 - Easy integration with existing SuperSocket applications
 - High-performance network communication
+- Multi-platform support including Android, iOS, macOS, and tvOS
+- Compatible with .NET 6.0, 7.0, 8.0, and 9.0
 
 ## Installation
 
@@ -47,7 +49,41 @@ message LoginResponse {
 ### Step 2: Configure SuperSocket with protobuf support
 
 ```csharp
-var host = SuperSocketHostBuilder.Create<ProtobufPackageInfo>()
+// Define your package info class to hold the message data
+public class MyProtobufPackageInfo
+{
+    public IMessage Message { get; set; }
+    public Type MessageType { get; set; }
+    public int TypeId { get; set; }
+}
+
+// Create a custom decoder that implements ProtobufPackageDecoder<MyProtobufPackageInfo>
+public class MyProtobufPackageDecoder : ProtobufPackageDecoder<MyProtobufPackageInfo>
+{
+    public MyProtobufPackageDecoder(ProtobufTypeRegistry typeRegistry) 
+        : base(typeRegistry) { }
+
+    protected override MyProtobufPackageInfo CreatePackageInfo(IMessage message, Type messageType, int typeId)
+    {
+        return new MyProtobufPackageInfo
+        {
+            Message = message,
+            MessageType = messageType,
+            TypeId = typeId
+        };
+    }
+}
+
+// Create a registry for your message types
+var typeRegistry = new ProtobufTypeRegistry();
+typeRegistry.Register(1, LoginRequest.Parser, typeof(LoginRequest));
+typeRegistry.Register(2, LoginResponse.Parser, typeof(LoginResponse));
+
+// Create your decoder with the type registry
+var decoder = new MyProtobufPackageDecoder(typeRegistry);
+
+// Configure the SuperSocket host
+var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
     .ConfigurePackageHandler(async (session, package) =>
     {
         // Handle your protobuf messages based on their types
@@ -57,13 +93,11 @@ var host = SuperSocketHostBuilder.Create<ProtobufPackageInfo>()
             // Process login request
         }
     })
-    .UsePipelineFilter<ProtobufPipelineFilter>()
+    .UsePipelineFilter(serviceProvider => 
+    {
+        return new ProtobufPipelineFilter<MyProtobufPackageInfo>(decoder);
+    })
     .Build();
-
-// Register message types
-var filter = host.ServiceProvider.GetRequiredService<ProtobufPipelineFilter>();
-filter.RegisterMessageType(1, LoginRequest.Parser, typeof(LoginRequest));
-filter.RegisterMessageType(2, LoginResponse.Parser, typeof(LoginResponse));
 
 await host.RunAsync();
 ```
@@ -71,8 +105,28 @@ await host.RunAsync();
 ### Step 3: Send protobuf messages from client
 
 ```csharp
-var encoder = new ProtobufPackageEncoder();
-encoder.RegisterMessageType(typeof(LoginRequest), 1);
+// Create a custom encoder that extends ProtobufPackageEncoder<MyProtobufPackageInfo>
+public class MyProtobufPackageEncoder : ProtobufPackageEncoder<MyProtobufPackageInfo>
+{
+    public MyProtobufPackageEncoder(ProtobufTypeRegistry typeRegistry) 
+        : base(typeRegistry) { }
+
+    protected override IMessage GetProtoBufMessage(MyProtobufPackageInfo package)
+    {
+        return package.Message;
+    }
+
+    protected override int GetProtoBufMessageTypeId(MyProtobufPackageInfo package)
+    {
+        return package.TypeId;
+    }
+}
+
+var typeRegistry = new ProtobufTypeRegistry();
+typeRegistry.Register(typeof(LoginRequest), 1);
+typeRegistry.Register(typeof(LoginResponse), 2);
+
+var encoder = new MyProtobufPackageEncoder(typeRegistry);
 
 var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 await client.ConnectAsync(serverEndPoint);
@@ -83,7 +137,7 @@ var loginRequest = new LoginRequest
     Password = "password"
 };
 
-var package = new ProtobufPackageInfo
+var package = new MyProtobufPackageInfo
 {
     Message = loginRequest,
     TypeId = 1
@@ -97,43 +151,80 @@ await client.SendAsync(buffer.WrittenMemory, SocketFlags.None);
 
 ## API Reference
 
-### ProtobufPackageInfo
+### ProtobufTypeRegistry
 
-Container class for protobuf messages and their metadata:
+Registry for mapping between message types and their identifiers:
 
 ```csharp
-public class ProtobufPackageInfo
+public class ProtobufTypeRegistry
 {
-    // The parsed protobuf message
-    public IMessage Message { get; set; }
+    // Register a message type with parser for decoding
+    public void Register(int typeId, MessageParser parser, Type messageType);
     
-    // The type of the message
-    public Type MessageType { get; set; }
-
-    // The type identifier of the message
-    public int TypeId { get; set; }
+    // Register a message type for encoding
+    public void Register(Type messageType, int typeId);
+    
+    // Try to get the parser for a given type ID
+    public bool TryGetParser(int typeId, out MessageParser parser);
+    
+    // Try to get the message type for a given type ID
+    public bool TryGetMessageType(int typeId, out Type messageType);
+    
+    // Try to get the type ID for a given message type
+    public bool TryGetTypeId(Type messageType, out int typeId);
 }
 ```
 
-### ProtobufPipelineFilter
+### ProtobufPipelineFilter<TPackageInfo>
 
 Processes incoming network data into structured protobuf messages:
 
 ```csharp
-// Register message types to handle incoming messages
-filter.RegisterMessageType(messageTypeId, messageParser, messageType);
+public class ProtobufPipelineFilter<TPackageInfo> : FixedHeaderPipelineFilter<TPackageInfo>
+    where TPackageInfo : class
+{
+    // Initialize the filter with a decoder
+    public ProtobufPipelineFilter(IPackageDecoder<TPackageInfo> decoder);
+}
 ```
 
-### ProtobufPackageEncoder
+### ProtobufPackageDecoder<TPackageInfo>
+
+Decodes binary data into structured package information:
+
+```csharp
+public abstract class ProtobufPackageDecoder<TPackageInfo> : IPackageDecoder<TPackageInfo>
+{
+    // Initialize with a type registry
+    public ProtobufPackageDecoder(ProtobufTypeRegistry typeRegistry);
+    
+    // Decode a binary buffer into a package
+    public TPackageInfo Decode(ref ReadOnlySequence<byte> buffer, object context);
+    
+    // Abstract method to create package info from decoded message
+    protected abstract TPackageInfo CreatePackageInfo(IMessage message, Type messageType, int typeId);
+}
+```
+
+### ProtobufPackageEncoder<TPackageInfo>
 
 Encodes protobuf messages for network transmission:
 
 ```csharp
-// Register message types for encoding
-encoder.RegisterMessageType(messageType, messageTypeId);
-
-// Encode a message
-encoder.Encode(bufferWriter, packageInfo);
+public abstract class ProtobufPackageEncoder<TPackageInfo> : IPackageEncoder<TPackageInfo>
+{
+    // Initialize with a type registry
+    public ProtobufPackageEncoder(ProtobufTypeRegistry typeRegistry);
+    
+    // Encode a package into binary format
+    public int Encode(IBufferWriter<byte> writer, TPackageInfo package);
+    
+    // Abstract method to extract the protobuf message from a package
+    protected abstract IMessage GetProtoBufMessage(TPackageInfo package);
+    
+    // Virtual method to get message type ID from package
+    protected virtual int GetProtoBufMessageTypeId(TPackageInfo package);
+}
 ```
 
 ## Protocol Format
