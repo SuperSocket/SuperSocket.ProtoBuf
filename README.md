@@ -74,13 +74,35 @@ public class MyProtobufPackageDecoder : ProtobufPackageDecoder<MyProtobufPackage
     }
 }
 
+// Create a custom encoder that extends ProtobufPackageEncoder<MyProtobufPackageInfo>
+public class MyProtobufPackageEncoder : ProtobufPackageEncoder<MyProtobufPackageInfo>
+{
+    public MyProtobufPackageEncoder(ProtobufTypeRegistry typeRegistry) 
+        : base(typeRegistry) { }
+
+    protected override IMessage GetProtoBufMessage(MyProtobufPackageInfo package)
+    {
+        return package.Message;
+    }
+
+    protected override int GetProtoBufMessageTypeId(MyProtobufPackageInfo package)
+    {
+        return package.TypeId;
+    }
+}
+
 // Create a registry for your message types
 var typeRegistry = new ProtobufTypeRegistry();
+// Register for both encoding and decoding
 typeRegistry.Register(1, LoginRequest.Parser, typeof(LoginRequest));
 typeRegistry.Register(2, LoginResponse.Parser, typeof(LoginResponse));
+typeRegistry.Register(typeof(LoginRequest), 1);
+typeRegistry.Register(typeof(LoginResponse), 2);
 
 // Create your decoder with the type registry
 var decoder = new MyProtobufPackageDecoder(typeRegistry);
+// Create your encoder with the same type registry
+var encoder = new MyProtobufPackageEncoder(typeRegistry);
 
 // Configure the SuperSocket host
 var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
@@ -91,12 +113,27 @@ var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
         {
             var request = package.Message as LoginRequest;
             // Process login request
+            
+            // Create a response
+            var response = new LoginResponse
+            {
+                Success = true,
+                Message = $"Welcome {request.Username}!"
+            };
+            
+            // Send the response using the encoder
+            await session.SendAsync(new MyProtobufPackageInfo 
+            { 
+                Message = response, 
+                TypeId = 2 
+            });
         }
     })
     .UsePipelineFilter(serviceProvider => 
     {
         return new ProtobufPipelineFilter<MyProtobufPackageInfo>(decoder);
     })
+    .UsePackageEncoder(encoder)
     .Build();
 
 await host.RunAsync();
@@ -233,6 +270,88 @@ Messages are sent with an 8-byte header followed by the protobuf message payload
 - First 4 bytes: Message size in big-endian format
 - Next 4 bytes: Message type ID in big-endian format
 - Remaining bytes: The serialized protobuf message
+
+## Using IMessage Directly
+
+SuperSocket.ProtoBuf provides concrete implementations of `ProtobufPipelineFilter`, `ProtobufPackageDecoder`, and `ProtobufPackageEncoder` that work directly with `IMessage` as the package type.
+
+### Server Example with Direct IMessage Handling
+
+```csharp
+// Create a registry for your message types
+var typeRegistry = new ProtobufTypeRegistry();
+// Register for both encoding and decoding
+typeRegistry.Register(1, LoginRequest.Parser, typeof(LoginRequest));
+typeRegistry.Register(2, LoginResponse.Parser, typeof(LoginResponse));
+typeRegistry.Register(typeof(LoginRequest), 1);
+typeRegistry.Register(typeof(LoginResponse), 2);
+
+// Use the concrete ProtobufPackageDecoder and Encoder that work directly with IMessage
+var decoder = new ProtobufPackageDecoder(typeRegistry);
+var encoder = new ProtobufPackageEncoder(typeRegistry);
+
+// Configure the SuperSocket host using IMessage as the package type
+var host = SuperSocketHostBuilder.Create<IMessage>()
+    .ConfigurePackageHandler(async (session, message) =>
+    {
+        // Handle messages based on their type
+        if (message is LoginRequest loginRequest)
+        {
+            // Process login request
+            Console.WriteLine($"Login request received for: {loginRequest.Username}");
+            
+            // Create a response
+            var response = new LoginResponse
+            {
+                Success = true,
+                Message = $"Welcome {loginRequest.Username}!"
+            };
+            
+            // Send the response directly
+            await session.SendAsync(response);
+        }
+    })
+    .UsePipelineFilter(serviceProvider => 
+    {
+        // Use the concrete ProtobufPipelineFilter for IMessage
+        return new ProtobufPipelineFilter(decoder);
+    })
+    .UsePackageEncoder(encoder)
+    .Build();
+
+await host.RunAsync();
+```
+
+### Client Example with Direct IMessage Handling
+
+```csharp
+// Create a registry for your message types
+var typeRegistry = new ProtobufTypeRegistry();
+typeRegistry.Register(typeof(LoginRequest), 1);
+typeRegistry.Register(typeof(LoginResponse), 2);
+
+// Use the concrete ProtobufPackageEncoder that works directly with IMessage
+var encoder = new ProtobufPackageEncoder(typeRegistry);
+
+// Connect to the server
+var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+await client.ConnectAsync(serverEndPoint);
+
+// Create a login request message
+var loginRequest = new LoginRequest
+{
+    Username = "username",
+    Password = "password"
+};
+
+// Encode and send the message directly
+var buffer = new ArrayBufferWriter<byte>();
+encoder.Encode(buffer, loginRequest);
+await client.SendAsync(buffer.WrittenMemory, SocketFlags.None);
+
+// For receiving responses, you would typically set up a client using the ProtobufPipelineFilter
+// with the concrete ProtobufPackageDecoder and handle messages accordingly
+```
 
 ## License
 

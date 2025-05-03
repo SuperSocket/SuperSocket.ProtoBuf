@@ -59,4 +59,26 @@ namespace SuperSocket.ProtoBuf
         /// <param name="typeId">The type identifier</param>
         protected abstract TPackageInfo CreatePackageInfo(IMessage message, Type messageType, int typeId);
     }
+
+    /// <summary>
+    /// A concrete implementation of ProtobufPackageDecoder for IMessage.
+    /// </summary>
+    public class ProtobufPackageDecoder : ProtobufPackageDecoder<IMessage>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProtobufPackageDecoder"/> class.
+        /// </summary>
+        /// <param name="typeRegistry">The protobuf type registry to use for decoding</param>
+        /// <exception cref="ArgumentNullException">Thrown when typeRegistry is null</exception>
+        public ProtobufPackageDecoder(ProtobufTypeRegistry typeRegistry)
+            : base(typeRegistry)
+        {
+        }
+
+        /// <inheritdoc/>
+        protected override IMessage CreatePackageInfo(IMessage message, Type messageType, int typeId)
+        {
+            return message;
+        }
+    }
 }

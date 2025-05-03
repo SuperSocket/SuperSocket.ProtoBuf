@@ -42,4 +42,20 @@ namespace SuperSocket.ProtoBuf
             return bodyLength;
         }
     }
+
+    /// <summary>
+    /// A pipeline filter that processes incoming data streams and extracts protocol buffer messages.
+    /// </summary>
+    public class ProtobufPipelineFilter : ProtobufPipelineFilter<IMessage>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProtobufPipelineFilter"/> class.
+        /// </summary>
+        /// <param name="decoder">The package decoder to use for decoding messages</param>
+        /// <exception cref="ArgumentNullException">Thrown when typeRegistry is null</exception>
+        public ProtobufPipelineFilter(IPackageDecoder<IMessage> decoder)
+            : base(decoder)
+        {
+        }
+    }
 }
