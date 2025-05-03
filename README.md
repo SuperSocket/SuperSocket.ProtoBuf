@@ -94,10 +94,8 @@ public class MyProtobufPackageEncoder : ProtobufPackageEncoder<MyProtobufPackage
 // Create a registry for your message types
 var typeRegistry = new ProtobufTypeRegistry();
 // Register for both encoding and decoding
-typeRegistry.Register(1, LoginRequest.Parser, typeof(LoginRequest));
-typeRegistry.Register(2, LoginResponse.Parser, typeof(LoginResponse));
-typeRegistry.Register(typeof(LoginRequest), 1);
-typeRegistry.Register(typeof(LoginResponse), 2);
+typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
+typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
 // Create your decoder with the type registry
 var decoder = new MyProtobufPackageDecoder(typeRegistry);
@@ -160,8 +158,8 @@ public class MyProtobufPackageEncoder : ProtobufPackageEncoder<MyProtobufPackage
 }
 
 var typeRegistry = new ProtobufTypeRegistry();
-typeRegistry.Register(typeof(LoginRequest), 1);
-typeRegistry.Register(typeof(LoginResponse), 2);
+typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
+typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
 var encoder = new MyProtobufPackageEncoder(typeRegistry);
 
@@ -195,11 +193,8 @@ Registry for mapping between message types and their identifiers:
 ```csharp
 public class ProtobufTypeRegistry
 {
-    // Register a message type with parser for decoding
-    public void Register(int typeId, MessageParser parser, Type messageType);
-    
-    // Register a message type for encoding
-    public void Register(Type messageType, int typeId);
+    // Register a message type with parser for decoding and encoding
+    public void RegisterMessageType(int typeId, Type messageType, MessageParser parser);
     
     // Try to get the parser for a given type ID
     public bool TryGetParser(int typeId, out MessageParser parser);
@@ -209,6 +204,15 @@ public class ProtobufTypeRegistry
     
     // Try to get the type ID for a given message type
     public bool TryGetTypeId(Type messageType, out int typeId);
+    
+    // Get the type ID for a message type
+    public int GetTypeId(Type messageType);
+    
+    // Get the message type for a type ID
+    public Type GetMessageType(int typeId);
+    
+    // Get the message parser for a type ID
+    public MessageParser GetParser(int typeId);
 }
 ```
 
@@ -281,10 +285,8 @@ SuperSocket.ProtoBuf provides concrete implementations of `ProtobufPipelineFilte
 // Create a registry for your message types
 var typeRegistry = new ProtobufTypeRegistry();
 // Register for both encoding and decoding
-typeRegistry.Register(1, LoginRequest.Parser, typeof(LoginRequest));
-typeRegistry.Register(2, LoginResponse.Parser, typeof(LoginResponse));
-typeRegistry.Register(typeof(LoginRequest), 1);
-typeRegistry.Register(typeof(LoginResponse), 2);
+typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
+typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
 // Use the concrete ProtobufPackageDecoder and Encoder that work directly with IMessage
 var decoder = new ProtobufPackageDecoder(typeRegistry);
@@ -327,8 +329,8 @@ await host.RunAsync();
 ```csharp
 // Create a registry for your message types
 var typeRegistry = new ProtobufTypeRegistry();
-typeRegistry.Register(typeof(LoginRequest), 1);
-typeRegistry.Register(typeof(LoginResponse), 2);
+typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
+typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
 // Use the concrete ProtobufPackageEncoder that works directly with IMessage
 var encoder = new ProtobufPackageEncoder(typeRegistry);
