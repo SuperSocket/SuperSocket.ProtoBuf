@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package SuperSocket.ProtoBuf.Tests;
+
+message TestMessage {
+  int32 id = 1;
+  string name = 2;
+  bytes data = 3;
+}
+
+message AnotherTestMessage {
+  string message = 1;
+  int64 timestamp = 2;
+}

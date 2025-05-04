@@ -9,6 +9,18 @@
     
     <!-- Google packages -->
     <PackageVersion Include="Google.Protobuf" Version="3.25.1" />
+    <PackageVersion Include="Google.Protobuf.Tools" Version="3.24.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.57.0" />
+    
+    <!-- Testing packages -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="xunit" Version="2.6.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageVersion Include="Moq" Version="4.20.69" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.0" />
+    
+    <!-- System packages -->
+    <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
     
     <!-- Build and development tools -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />

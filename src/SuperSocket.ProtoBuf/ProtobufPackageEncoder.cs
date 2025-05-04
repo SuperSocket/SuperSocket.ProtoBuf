@@ -69,7 +69,7 @@ namespace SuperSocket.ProtoBuf
             writer.Advance(8);
 
             // Write the actual message
-            var messageBuffer = writer.GetSpan(messageSize);
+            var messageBuffer = writer.GetSpan(messageSize).Slice(0, messageSize);
             message.WriteTo(messageBuffer);
             writer.Advance(messageSize);
 
