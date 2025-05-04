@@ -1,6 +1,6 @@
 # SuperSocket.ProtoBuf
 
-[![Build Status](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yml/badge.svg)](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yml)
+[![build](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yaml/badge.svg)](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yaml)
 [![NuGet Version](https://img.shields.io/nuget/vpre/SuperSocket.ProtoBuf.svg?style=flat)](https://www.nuget.org/packages/SuperSocket.ProtoBuf/)
 [![NuGet Download](https://img.shields.io/nuget/dt/SuperSocket.ProtoBuf.svg?style=flat)](https://www.nuget.org/packages/SuperSocket.ProtoBuf/)
 
