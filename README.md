@@ -1,5 +1,9 @@
 # SuperSocket.ProtoBuf
 
+[![Build Status](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yml/badge.svg)](https://github.com/SuperSocket/SuperSocket.ProtoBuf/actions/workflows/build.yml)
+[![NuGet Version](https://img.shields.io/nuget/vpre/SuperSocket.ProtoBuf.svg?style=flat)](https://www.nuget.org/packages/SuperSocket.ProtoBuf/)
+[![NuGet Download](https://img.shields.io/nuget/dt/SuperSocket.ProtoBuf.svg?style=flat)](https://www.nuget.org/packages/SuperSocket.ProtoBuf/)
+
 ## Overview
 
 SuperSocket.ProtoBuf is an extension library for [SuperSocket](https://github.com/kerryjiang/SuperSocket) that provides seamless integration with Google Protocol Buffers (protobuf). This library enables efficient binary serialization and deserialization of network messages with built-in support for message type identification, making it ideal for high-performance network applications requiring cross-platform and cross-language compatibility.
