@@ -5,7 +5,9 @@
   
   <ItemGroup>
     <!-- SuperSocket packages -->
-    <PackageVersion Include="SuperSocket.ProtoBase" Version="2.0.0" />
+    <PackageVersion Include="SuperSocket.ProtoBase" Version="2.0.2-beta.1.618" />
+    <PackageVersion Include="SuperSocket.Server" Version="2.0.2-beta.1.618" />
+    <PackageVersion Include="SuperSocket.Client" Version="2.0.2-beta.1.618" />
     
     <!-- Google packages -->
     <PackageVersion Include="Google.Protobuf" Version="3.25.1" />
@@ -21,6 +23,8 @@
     
     <!-- System packages -->
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     
     <!-- Build and development tools -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />

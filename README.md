@@ -131,11 +131,9 @@ var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
             });
         }
     })
-    .UsePipelineFilter(serviceProvider => 
-    {
-        return new ProtobufPipelineFilter<MyProtobufPackageInfo>(decoder);
-    })
+    .UsePackageDecoder(decoder)
     .UsePackageEncoder(encoder)
+    .UsePipelineFilter<ProtobufPipelineFilter<MyProtobufPackageInfo>>()
     .Build();
 
 await host.RunAsync();
@@ -317,12 +315,9 @@ var host = SuperSocketHostBuilder.Create<IMessage>()
             await session.SendAsync(response);
         }
     })
-    .UsePipelineFilter(serviceProvider => 
-    {
-        // Use the concrete ProtobufPipelineFilter for IMessage
-        return new ProtobufPipelineFilter(decoder);
-    })
+    .UsePackageDecoder(decoder)
     .UsePackageEncoder(encoder)
+    .UsePipelineFilter<ProtobufPipelineFilter>()
     .Build();
 
 await host.RunAsync();

@@ -17,6 +17,10 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Google.Protobuf.Tools" />
     <PackageReference Include="System.IO.Pipelines" />
+    <PackageReference Include="SuperSocket.Server" />
+    <PackageReference Include="SuperSocket.Client" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
