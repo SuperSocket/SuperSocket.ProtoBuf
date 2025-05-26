@@ -101,14 +101,12 @@ var typeRegistry = new ProtobufTypeRegistry();
 typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
 typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
-// Create your decoder with the type registry
-var decoder = new MyProtobufPackageDecoder(typeRegistry);
-// Create your encoder with the same type registry
-var encoder = new MyProtobufPackageEncoder(typeRegistry);
-
 // Configure the SuperSocket host
 var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
-    .ConfigurePackageHandler(async (session, package) =>
+    .UsePackageDecoder<MyProtobufPackageDecoder>()
+    .UsePackageEncoder<MyProtobufPackageEncoder>()
+    .UsePipelineFilter<ProtobufPipelineFilter<MyProtobufPackageInfo>>()
+    .UsePackageHandler(async (session, package) =>
     {
         // Handle your protobuf messages based on their types
         if (package.MessageType == typeof(LoginRequest))
@@ -131,9 +129,10 @@ var host = SuperSocketHostBuilder.Create<MyProtobufPackageInfo>()
             });
         }
     })
-    .UsePackageDecoder(decoder)
-    .UsePackageEncoder(encoder)
-    .UsePipelineFilter<ProtobufPipelineFilter<MyProtobufPackageInfo>>()
+    .ConfigureServices(services =>
+    {
+        services.AddSingleton(registry);
+    })
     .Build();
 
 await host.RunAsync();
@@ -163,7 +162,7 @@ var typeRegistry = new ProtobufTypeRegistry();
 typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
 typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
-var encoder = new MyProtobufPackageEncoder(typeRegistry);
+var encoder = new ProtobufPackageEncoder(typeRegistry);
 
 var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 await client.ConnectAsync(serverEndPoint);
@@ -290,13 +289,12 @@ var typeRegistry = new ProtobufTypeRegistry();
 typeRegistry.RegisterMessageType(1, typeof(LoginRequest), LoginRequest.Parser);
 typeRegistry.RegisterMessageType(2, typeof(LoginResponse), LoginResponse.Parser);
 
-// Use the concrete ProtobufPackageDecoder and Encoder that work directly with IMessage
-var decoder = new ProtobufPackageDecoder(typeRegistry);
-var encoder = new ProtobufPackageEncoder(typeRegistry);
-
 // Configure the SuperSocket host using IMessage as the package type
 var host = SuperSocketHostBuilder.Create<IMessage>()
-    .ConfigurePackageHandler(async (session, message) =>
+    .UsePackageDecoder<MyProtobufPackageDecoder>()
+    .UsePackageEncoder<MyProtobufPackageEncoder>()
+    .UsePipelineFilter<ProtobufPipelineFilter<MyProtobufPackageInfo>>()
+    .UsePackageHandler(async (session, message) =>
     {
         // Handle messages based on their type
         if (message is LoginRequest loginRequest)
@@ -315,9 +313,10 @@ var host = SuperSocketHostBuilder.Create<IMessage>()
             await session.SendAsync(response);
         }
     })
-    .UsePackageDecoder(decoder)
-    .UsePackageEncoder(encoder)
-    .UsePipelineFilter<ProtobufPipelineFilter>()
+    .ConfigureServices(services =>
+    {
+        services.AddSingleton(registry);
+    })
     .Build();
 
 await host.RunAsync();
