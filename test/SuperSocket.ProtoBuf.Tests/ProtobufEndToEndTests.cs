@@ -84,6 +84,8 @@ namespace SuperSocket.ProtoBuf.Tests
                 await session.SendAsync(encoder, package);
             });
 
+            await server.StartAsync();
+
             // Create client
             var pipelineFilter = new ProtobufPipelineFilter(new ProtobufPackageDecoder(_registry));
             var encoder = new ProtobufPackageEncoder(_registry);
